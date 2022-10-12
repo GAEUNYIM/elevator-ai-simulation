@@ -27,10 +27,12 @@ BLUE1 = (0, 0, 255)
 BLUE2 = (0, 100, 255)
 BLACK = (0,0,0)
 
+FLOORS = 4
 ELEVATOR_WIDTH = 100
 ELEVATOR_HEIGHT = 200
 # BLOCK_SIZE = 20
 SPEED = 20
+
 
 class EGCS:
     
@@ -51,11 +53,18 @@ class EGCS:
         #               Point(self.head.x-BLOCK_SIZE, self.head.y),
         #               Point(self.head.x-(2*BLOCK_SIZE), self.head.y)]
         
-        self.elevators = [1, 3] # List : Contains the location of elevators. Double-deck Elevator.
-        self.hall_calls = [3, 0, 1, 2] # List : Contains the flag of hall calls. Binary
+        self.elevators = [1, 1] # List : Contains the location of elevators. Double-deck Elevator.
+        self.hall_calls = [] # List : Contains the flag of hall calls. Binary
         self.score = 0
         self.passenger = None
+        self._init_hall_calls()
         self._place_passenger()
+        
+    
+    def _init_hall_calls(self):
+        for i in range(0, FLOORS):
+            self.hall_calls.append(random.randint(0,1))
+        print(self.hall_calls)
     
     def _place_passenger(self):
         # floor = random.randint(0,4)
