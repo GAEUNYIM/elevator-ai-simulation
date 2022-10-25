@@ -27,13 +27,12 @@ BLUE1 = (0, 0, 255)
 BLUE2 = (0, 100, 255)
 BLACK = (0,0,0)
 
+# User defined variables
 UI_WIDTH = 400
 UI_HEIGHT = 800
 FLOORS = 8
-
 ELEVATOR_WIDTH = 100
 ELEVATOR_HEIGHT = UI_HEIGHT / FLOORS
-# BLOCK_SIZE = 20
 SPEED = 20
 
 class Elevator:
@@ -51,6 +50,9 @@ class Elevator:
 
 
 class EGCS:
+    '''
+        Elevator Group Control System (Solving problem)
+    '''
     
     def __init__(self, w=400, h=800):
         self.w = w
