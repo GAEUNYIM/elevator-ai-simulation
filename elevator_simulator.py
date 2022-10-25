@@ -36,9 +36,9 @@ ELEVATOR_HEIGHT = UI_HEIGHT / FLOORS
 # BLOCK_SIZE = 20
 SPEED = 20
 
-class Agent:
+class Elevator:
     '''
-        Agent Class
+        Elevator agent Class
     '''
     def __init__(self, id, init_flr):
         self.agent_id = id # Agent id
