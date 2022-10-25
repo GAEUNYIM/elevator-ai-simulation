@@ -56,7 +56,8 @@ class EGCS:
         self.display = pygame.display.set_mode((self.w, self.h))
         pygame.display.set_caption('Elevator Group Control System')
         self.clock = pygame.time.Clock()
-        self.ticks = pygame.time.get_ticks()
+        self.start_ticks = pygame.time.get_ticks()
+        self.temp_ticks = 0
         
         # init game state
         self.next_dest_flr = 0;#  direction = Direction.STAY
@@ -72,7 +73,6 @@ class EGCS:
         self.score = 0
         self.passenger = None
         self._init_hall_calls()
-        self._place_passenger()
         
     
     def _init_hall_calls(self):
@@ -122,12 +122,8 @@ class EGCS:
         #     game_over = True
         #     return game_over, self.score
             
-        # 4. place new food or just move
-        # if self.head == self.food:
-        #     self.score += 1
-        #     self._place_food()
-        # else:
-        #     self.snake.pop()
+        # 4. place new passenger
+        self._place_passenger()
         
         # 5. update ui and clock
         self._update_ui()
@@ -138,10 +134,15 @@ class EGCS:
         return False, 0
 
     def _place_passenger(self):
-        # floor = random.randint(0,4)
-        # self.hall_calls[floor] += 1
-        # x = 1
-        # y = random.randint(0, 8)*ELEVATOR_HEIGHT
+        curr_ticks = pygame.time.get_ticks()
+        print("ticks: ", curr_ticks)
+        if (self.temp_ticks + 1000 < curr_ticks): # TODO : Poisson distribution should be applied.
+            print("place_passenger()")
+            rand_flr = random.randint(1, FLOORS-1)
+            self.hall_calls[rand_flr] += 1
+            self.temp_ticks = curr_ticks
+        print("Hall calls: ", self.hall_calls)
+        # y = rand_update_uiom.randint(0, 8)*ELEVATOR_HEIGHT
         # self.passenger = Point(x, y)
         # If passenger meets elevator, then 
             # allocate new passenger next time
@@ -210,9 +211,9 @@ class EGCS:
         self.reversed_hall_calls = list(reversed(self.hall_calls))
         reversed_flr = 0
         highest_call_flr = 0
-        while (True):
+        while (reversed_flr != FLOORS):
             highest_call_flr = reversed_flr
-            if (self.reversed_hall_calls[reversed_flr] == 1):
+            if (self.reversed_hall_calls[reversed_flr] != 0):
                 break
             reversed_flr += 1
         return (FLOORS - 1) - highest_call_flr
