@@ -116,8 +116,7 @@ class EGCS:
             #         self.direction = Direction.DOWN
         
         # 2. move
-        self._move(self.next_dest_flr) # update the head
-        # self.snake.insert(0, self.head)
+        self._move() 
         
         # 3. check if game over
         # game_over = False
