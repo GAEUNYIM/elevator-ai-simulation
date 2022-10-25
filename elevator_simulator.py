@@ -27,9 +27,12 @@ BLUE1 = (0, 0, 255)
 BLUE2 = (0, 100, 255)
 BLACK = (0,0,0)
 
-FLOORS = 4
+UI_WIDTH = 400
+UI_HEIGHT = 800
+FLOORS = 8
+
 ELEVATOR_WIDTH = 100
-ELEVATOR_HEIGHT = 200
+ELEVATOR_HEIGHT = UI_HEIGHT / FLOORS
 # BLOCK_SIZE = 20
 SPEED = 20
 
@@ -86,14 +89,14 @@ class EGCS:
         if agent == 0:
             x_align = 0
         elif agent == 1:
-            x_align = 300
+            x_align = UI_WIDTH - ELEVATOR_WIDTH
 
-        return Point(x_align, 800-(floor*ELEVATOR_HEIGHT))
+        return Point(x_align, UI_HEIGHT-(floor*ELEVATOR_HEIGHT))
 
     def _floor_to_point_passenger(self, floor):
-        x_align = 180
+        x_align = UI_WIDTH / 2 - 10
 
-        return Point(x_align, 770-(floor*ELEVATOR_HEIGHT))
+        return Point(x_align, (UI_HEIGHT-30)-(floor*ELEVATOR_HEIGHT))
     
         
     def play_step(self):
