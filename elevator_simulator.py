@@ -189,7 +189,7 @@ class EGCS:
         pass
 
         
-    def _move(self, dest_flr):
+    def _move(self):
         self.next_dest_flr = self._get_flr_highest_hall_call()
         # x = self.head.x
         # y = self.head.y
@@ -203,7 +203,7 @@ class EGCS:
         #     y -= BLOCK_SIZE
             
         # self.head = Point(x, y)
-        return 1
+        return self.next_dest_flr
         
 
     def _get_size_hall_calls(self):
