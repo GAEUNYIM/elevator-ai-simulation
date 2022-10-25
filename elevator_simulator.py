@@ -33,6 +33,19 @@ ELEVATOR_HEIGHT = 200
 # BLOCK_SIZE = 20
 SPEED = 20
 
+class Agent:
+    '''
+        Agent Class
+    '''
+    def __init__(self, id, init_flr):
+        self.agent_id = id # Agent id
+        self.curr_flr = 0 # Where is it located currently?
+        self.next_dest_flr = 0 # Which floor should agent visit next?
+        self.visit_list = [] # Which floors should agent visit until the simulation ends?
+
+    def _some_functions(self):
+        pass
+
 
 class EGCS:
     
@@ -46,7 +59,7 @@ class EGCS:
         self.ticks = pygame.time.get_ticks()
         
         # init game state
-        self.direction = Direction.STAY
+        self.next_dest_flr = 0;#  direction = Direction.STAY
         
         # self.head = Point(self.w/2, self.h/2)
         # self.snake = [self.head, 
@@ -55,6 +68,7 @@ class EGCS:
         
         self.elevators = [1, 1] # List : Contains the location of elevators. Double-deck Elevator.
         self.hall_calls = [] # List : Contains the flag of hall calls. Binary
+        self.reversed_hall_calls = [] # List : Reverse of hall_calls
         self.score = 0
         self.passenger = None
         self._init_hall_calls()
@@ -62,19 +76,25 @@ class EGCS:
         
     
     def _init_hall_calls(self):
-        for i in range(0, FLOORS):
+        for i in range(0, FLOORS-1):
+            if i==0:
+                self.hall_calls.append(0)
             self.hall_calls.append(random.randint(0,1))
-        print(self.hall_calls)
+        print("Hall calls: ", self.hall_calls)
+
+    def _floor_to_point_agent(self, agent, floor):
+        if agent == 0:
+            x_align = 0
+        elif agent == 1:
+            x_align = 300
+
+        return Point(x_align, 800-(floor*ELEVATOR_HEIGHT))
+
+    def _floor_to_point_passenger(self, floor):
+        x_align = 180
+
+        return Point(x_align, 770-(floor*ELEVATOR_HEIGHT))
     
-    def _place_passenger(self):
-        # floor = random.randint(0,4)
-        # self.hall_calls[floor] += 1
-        # x = 1
-        # y = random.randint(0, 8)*ELEVATOR_HEIGHT
-        # self.passenger = Point(x, y)
-        # If passenger meets elevator, then 
-            # allocate new passenger next time
-        pass
         
     def play_step(self):
         # 1. collect user input
@@ -93,7 +113,7 @@ class EGCS:
             #         self.direction = Direction.DOWN
         
         # 2. move
-        # self._move(self.direction) # update the head
+        self._move(self.next_dest_flr) # update the head
         # self.snake.insert(0, self.head)
         
         # 3. check if game over
@@ -116,6 +136,16 @@ class EGCS:
         # return game_over, self.score
 
         return False, 0
+
+    def _place_passenger(self):
+        # floor = random.randint(0,4)
+        # self.hall_calls[floor] += 1
+        # x = 1
+        # y = random.randint(0, 8)*ELEVATOR_HEIGHT
+        # self.passenger = Point(x, y)
+        # If passenger meets elevator, then 
+            # allocate new passenger next time
+        pass
     
     def _is_collision(self):
         # # hits boundary
@@ -127,20 +157,6 @@ class EGCS:
         
         # return False
         pass
-
-    def _floor_to_point_agent(self, agent, floor):
-        if agent == 0:
-            x_align = 0
-        elif agent == 1:
-            x_align = 300
-
-        return Point(x_align, 800-(floor*ELEVATOR_HEIGHT))
-
-    def _floor_to_point_passenger(self, floor):
-        x_align = 180
-
-        return Point(x_align, 770-(floor*ELEVATOR_HEIGHT))
-
         
     def _update_ui(self):
         self.display.fill(WHITE)
@@ -154,7 +170,10 @@ class EGCS:
 
         for flr, psg in enumerate(self.hall_calls):
             pt = self._floor_to_point_passenger(flr)
-            text = font.render(str(psg), True, BLACK)
+            if flr == 0:
+                text = font.render("GF", True, BLACK)
+            else:
+                text = font.render(str(psg), True, BLACK)
             self.display.blit(text, [pt.x, pt.y])
 
         # pygame.draw.rect(self.display, RED, pygame.Rect(self.food.x, self.food.y, BLOCK_SIZE, BLOCK_SIZE))
@@ -165,8 +184,10 @@ class EGCS:
         # self.display.blit(time, [0, 40])
         pygame.display.flip()
         pass
+
         
-    def _move(self, direction):
+    def _move(self, dest_flr):
+        self.next_dest_flr = self._get_flr_highest_hall_call()
         # x = self.head.x
         # y = self.head.y
         # if direction == Direction.RIGHT:
@@ -179,7 +200,22 @@ class EGCS:
         #     y -= BLOCK_SIZE
             
         # self.head = Point(x, y)
-        pass
+        return 1
+        
+
+    def _get_size_hall_calls(self):
+        return len(self.hall_calls)
+
+    def _get_flr_highest_hall_call(self):
+        self.reversed_hall_calls = list(reversed(self.hall_calls))
+        reversed_flr = 0
+        highest_call_flr = 0
+        while (True):
+            highest_call_flr = reversed_flr
+            if (self.reversed_hall_calls[reversed_flr] == 1):
+                break
+            reversed_flr += 1
+        return (FLOORS - 1) - highest_call_flr
             
 
 if __name__ == '__main__':
