@@ -5,7 +5,7 @@ from collections import namedtuple
 
 pygame.init()
 # font = pygame.font.Font('arial.ttf', 25)
-font = pygame.font.SysFont('arial', 25)
+font = pygame.font.SysFont('arial', 12)
 
 # reset
 # reward
@@ -30,7 +30,10 @@ BLACK = (0,0,0)
 # User defined variables
 UI_WIDTH = 400
 UI_HEIGHT = 800
+
 FLOORS = 8
+AGENTS = 2
+
 ELEVATOR_WIDTH = 100
 ELEVATOR_HEIGHT = UI_HEIGHT / FLOORS
 SPEED = 20
@@ -55,9 +58,11 @@ class EGCS:
     '''
     
     def __init__(self, w=400, h=800):
+        # Set width and height
         self.w = w
         self.h = h
-        # init display
+
+        # initialize display
         self.display = pygame.display.set_mode((self.w, self.h))
         pygame.display.set_caption('Elevator Group Control System')
         self.clock = pygame.time.Clock()
@@ -65,29 +70,25 @@ class EGCS:
         self.temp_ticks = 0
         
         # init game state
-        self.next_dest_flr = 0;#  direction = Direction.STAY
+        self.next_dest_flr = 0; #  direction = Direction.STAY
         
-        # self.head = Point(self.w/2, self.h/2)
-        # self.snake = [self.head, 
-        #               Point(self.head.x-BLOCK_SIZE, self.head.y),
-        #               Point(self.head.x-(2*BLOCK_SIZE), self.head.y)]
-        
-        self.elevators = [1, 1] # List : Contains the location of elevators. Double-deck Elevator.
-        self.hall_calls = [] # List : Contains the flag of hall calls. Binary
+        self.info_elevators = [1, 1] # List : Contains the location of elevators. Double-deck Elevator.
+        self.info_hall_calls = [] # List : Contains the flag of hall calls. Binary
         self.reversed_hall_calls = [] # List : Reverse of hall_calls
         self.score = 0
         self.passenger = None
         self._init_hall_calls()
-        
+    
     
     def _init_hall_calls(self):
-        for i in range(0, FLOORS-1):
-            if i==0:
-                self.hall_calls.append(0)
-            self.hall_calls.append(random.randint(0,1))
-        print("Hall calls: ", self.hall_calls)
+        for i in range(0, FLOORS):
+            self.info_hall_calls.append(0)
+            # if i==0:
+            #     self.info_hall_calls.append(0)
+            # self.info_hall_calls.append(random.randint(0,1))
+        print("Hall calls: ", self.info_hall_calls)
 
-    def _floor_to_point_agent(self, agent, floor):
+    def _convert_flr_to_elevator_pivot(self, agent, floor):
         if agent == 0:
             x_align = 0
         elif agent == 1:
@@ -95,7 +96,7 @@ class EGCS:
 
         return Point(x_align, UI_HEIGHT-(floor*ELEVATOR_HEIGHT))
 
-    def _floor_to_point_passenger(self, floor):
+    def _convert_flr_to_passenger_pivot(self, floor):
         x_align = UI_WIDTH / 2 - 10
 
         return Point(x_align, (UI_HEIGHT-30)-(floor*ELEVATOR_HEIGHT))
@@ -140,12 +141,12 @@ class EGCS:
     def _place_passenger(self):
         curr_ticks = pygame.time.get_ticks()
         print("ticks: ", curr_ticks)
-        if (self.temp_ticks + 1000 < curr_ticks): # TODO : Poisson distribution should be applied.
+        if (self.temp_ticks + 3000 < curr_ticks): # TODO : Poisson distribution should be applied.
             print("place_passenger()")
             rand_flr = random.randint(1, FLOORS-1)
-            self.hall_calls[rand_flr] += 1
+            self.info_hall_calls[rand_flr] += 1
             self.temp_ticks = curr_ticks
-        print("Hall calls: ", self.hall_calls)
+        print("Hall calls: ", self.info_hall_calls)
         # y = rand_update_uiom.randint(0, 8)*ELEVATOR_HEIGHT
         # self.passenger = Point(x, y)
         # If passenger meets elevator, then 
@@ -164,35 +165,66 @@ class EGCS:
         pass
         
     def _update_ui(self):
+        # Clear the background
         self.display.fill(WHITE)
-        
-        # for pt in self.snake:
-        #     pygame.draw.rect(self.display, BLUE1, pygame.Rect(pt.x, pt.y, BLOCK_SIZE, BLOCK_SIZE))
-        #     pygame.draw.rect(self.display, BLUE2, pygame.Rect(pt.x+4, pt.y+4, 12, 12))
-        for agt, flr in enumerate(self.elevators):
-            pt = self._floor_to_point_agent(agt, flr)
-            pygame.draw.rect(self.display, BLUE1, pygame.Rect(pt.x, pt.y, ELEVATOR_WIDTH, ELEVATOR_HEIGHT))
 
-        for flr, psg in enumerate(self.hall_calls):
-            pt = self._floor_to_point_passenger(flr)
-            if flr == 0:
-                text = font.render("GF", True, BLACK)
+        # Printing out the vertical lines
+        pygame.draw.line(self.display, BLACK, (100,0), (100,800))
+        pygame.draw.line(self.display, BLACK, (300,0), (300,800))
+
+        # Printing out the horizontal lines
+        for i in range(0, FLOORS):
+            y_align = i*ELEVATOR_HEIGHT
+            pygame.draw.line(self.display, BLACK, (0, y_align), (UI_WIDTH, y_align))
+        
+        # Printing out agent(elevator) information
+        for agt, flr in enumerate(self.info_elevators):
+            
+            # Printing out the Elevator UI
+            pt = self._convert_flr_to_elevator_pivot(agt, flr)
+            pygame.draw.rect(self.display, BLUE1, pygame.Rect(pt.x, pt.y, ELEVATOR_WIDTH, ELEVATOR_HEIGHT))
+            
+            # Printing out elevator information
+            text_agent = font.render("ELEVATOR "+str(agt+1), True, WHITE)
+            self.display.blit(text_agent, [pt.x+14, pt.y+40])
+
+        # Printing out floor information
+        for flr, psg in enumerate(self.info_hall_calls):
+
+            # Convert floor to the 2D passenger pivot point
+            pt = self._convert_flr_to_passenger_pivot(flr)
+
+            # GF
+            if flr == 0: 
+                text_flrg = font.render("GF", True, BLACK)
+                self.display.blit(text_flrg,[pt.x-80, pt.y+10] )
+
+            # 2F ~ 8F
             else:
                 text = font.render(str(psg), True, BLACK)
-            self.display.blit(text, [pt.x, pt.y])
+                self.display.blit(text, [pt.x+40, pt.y+10])
+
+                text_flr = font.render(str(flr+1) + "F", True, BLACK)
+                self.display.blit(text_flr, [pt.x-80, pt.y+10])
+
+            
 
         # pygame.draw.rect(self.display, RED, pygame.Rect(self.food.x, self.food.y, BLOCK_SIZE, BLOCK_SIZE))
         
-        text = font.render("Score: " + str(self.score), True, BLACK)
+        # text = font.render("Score: " + str(self.score), True, BLACK)
         # time = font.render("TIME: " + str(self.clock), True, BLACK )
-        self.display.blit(text, [0, 0])
         # self.display.blit(time, [0, 40])
+
+        text_wz = font.render("# of passengers", True, BLACK )
+        self.display.blit(text_wz, [180, 10])
+        
         pygame.display.flip()
         pass
 
         
     def _move(self):
-        self.next_dest_flr = self._get_flr_highest_hall_call()
+        deliever = False
+        self.next_visit_flr = self._get_next_visit_flr()
         # x = self.head.x
         # y = self.head.y
         # if direction == Direction.RIGHT:
@@ -205,14 +237,32 @@ class EGCS:
         #     y -= BLOCK_SIZE
             
         # self.head = Point(x, y)
-        return self.next_dest_flr
-        
 
-    def _get_size_hall_calls(self):
-        return len(self.hall_calls)
+        # Onboard passenger
+        self.info_elevators[0] = self.next_visit_flr
+        # for agt, flr in enumerate(self.info_elevators):
+        #     if deliever == False:
+        #         if self.info_elevators[agt] >= self.next_visit_flr:
+        #             self.info_elevators[agt] = self.next_visit_flr
+        #             deliever = True
+            
+            
 
-    def _get_flr_highest_hall_call(self):
-        self.reversed_hall_calls = list(reversed(self.hall_calls))
+
+    def _get_next_visit_flr(self):
+        '''
+        Return the floor should be visit next. Update every ticks.
+        '''
+        # Should be designed in detail..!!
+
+        return self._get_highest_hall_call_flr()
+
+
+    def _get_highest_hall_call_flr(self):
+        '''
+        Return the highest floor that has hall call.
+        '''
+        self.reversed_hall_calls = list(reversed(self.info_hall_calls))
         reversed_flr = 0
         highest_call_flr = 0
         while (reversed_flr != FLOORS):
@@ -220,8 +270,15 @@ class EGCS:
             if (self.reversed_hall_calls[reversed_flr] != 0):
                 break
             reversed_flr += 1
-        return (FLOORS - 1) - highest_call_flr
-            
+        highest = FLOORS - highest_call_flr
+        print("highest: ", highest)
+        return highest
+
+    def _get_highest_agent_floor(self):
+        '''
+        Return the highest floor that agent locates.
+        '''
+        return max(self.info_elevators)
 
 if __name__ == '__main__':
     
