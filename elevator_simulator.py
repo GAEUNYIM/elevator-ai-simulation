@@ -72,9 +72,14 @@ class EGCS:
         # init game state
         self.next_dest_flr = 0; #  direction = Direction.STAY
         
-        self.info_elevators = [1, 1] # List : Contains the location of elevators. Double-deck Elevator.
-        self.info_hall_calls = [] # List : Contains the flag of hall calls. Binary
+        self.state_elevators = [1, 1] # List : Contains the location of elevators. Double-deck Elevator.
+        self.state_directions = [0, 0] # List : Contains the direction of elevators.
+        self.state_hall_calls = [] # List : Contains the flag of hall calls. Binary
         self.reversed_hall_calls = [] # List : Reverse of hall_calls
+
+        self.queue_elv1 = []
+        self.queue_elv2 = []
+
         self.score = 0
         self.passenger = None
         self._init_hall_calls()
@@ -82,11 +87,11 @@ class EGCS:
     
     def _init_hall_calls(self):
         for i in range(0, FLOORS):
-            self.info_hall_calls.append(0)
+            self.state_hall_calls.append(0)
             # if i==0:
-            #     self.info_hall_calls.append(0)
-            # self.info_hall_calls.append(random.randint(0,1))
-        print("Hall calls: ", self.info_hall_calls)
+            #     self.state_hall_calls.append(0)
+            # self.state_hall_calls.append(random.randint(0,1))
+        print("Hall calls: ", self.state_hall_calls)
 
     def _convert_flr_to_elevator_pivot(self, agent, floor):
         if agent == 0:
@@ -143,10 +148,10 @@ class EGCS:
         print("ticks: ", curr_ticks)
         if (self.temp_ticks + 3000 < curr_ticks): # TODO : Poisson distribution should be applied.
             print("place_passenger()")
-            rand_flr = random.randint(1, FLOORS-1)
-            self.info_hall_calls[rand_flr] += 1
+            rand_flr = random.randint(2, FLOORS)
+            self.state_hall_calls[rand_flr-1] += 1
             self.temp_ticks = curr_ticks
-        print("Hall calls: ", self.info_hall_calls)
+
         # y = rand_update_uiom.randint(0, 8)*ELEVATOR_HEIGHT
         # self.passenger = Point(x, y)
         # If passenger meets elevator, then 
@@ -178,7 +183,7 @@ class EGCS:
             pygame.draw.line(self.display, BLACK, (0, y_align), (UI_WIDTH, y_align))
         
         # Printing out agent(elevator) information
-        for agt, flr in enumerate(self.info_elevators):
+        for agt, flr in enumerate(self.state_elevators):
             
             # Printing out the Elevator UI
             pt = self._convert_flr_to_elevator_pivot(agt, flr)
@@ -189,7 +194,7 @@ class EGCS:
             self.display.blit(text_agent, [pt.x+14, pt.y+40])
 
         # Printing out floor information
-        for flr, psg in enumerate(self.info_hall_calls):
+        for flr, psg in enumerate(self.state_hall_calls):
 
             # Convert floor to the 2D passenger pivot point
             pt = self._convert_flr_to_passenger_pivot(flr)
@@ -239,14 +244,48 @@ class EGCS:
         # self.head = Point(x, y)
 
         # Onboard passenger
-        self.info_elevators[0] = self.next_visit_flr
-        # for agt, flr in enumerate(self.info_elevators):
+        self.state_elevators[0] = self.next_visit_flr
+        # for agt, flr in enumerate(self.state_elevators):
         #     if deliever == False:
-        #         if self.info_elevators[agt] >= self.next_visit_flr:
-        #             self.info_elevators[agt] = self.next_visit_flr
+        #         if self.state_elevators[agt] >= self.next_visit_flr:
+        #             self.state_elevators[agt] = self.next_visit_flr
         #             deliever = True
+    
+    def _get_cloesest_elevator_with_flr(self, flr):
+        '''
+        Return the closest elevator with the input floor.
+        '''
+        residual_elv1 = abs(flr, self.state_elevators[0])
+        residual_elv2 = abs(flr, self.state_elevators[1])
+        
+        # Elevator 1 is closer with the input flr
+        if residual_elv1 > residual_elv2:
+            return 1, self.state_elevators[0]
+
+        # Elevator 2 is closer with the input flr
+        elif residual_elv1 < residual_elv2:
+            return 2, self.state_elevators[1]
+
+        # Elevator 1 has priority
+        else: 
+            return 1, self.state_elevators[0]
             
-            
+    def _get_highest_elevator_flr_info(self, floor):
+        '''
+        Return the highest floor that elevator locates.
+        '''
+        max_flr = floor
+        max_elvid = -1
+
+        # Comapare all the located floor among elevators
+        for enum, flr in self.state_elevators:
+            if max_flr < flr:
+                max_flr = flr
+                max_elvid = enum
+
+        # Return the highest 
+        return max_elvid, max_flr
+
 
 
     def _get_next_visit_flr(self):
@@ -255,6 +294,17 @@ class EGCS:
         '''
         # Should be designed in detail..!!
 
+        # Only consider the floors below both elevator.
+        highest_elv_flr = self._get_highest_elevator_flr_info()[1]
+        
+        # While examining the hall calls to downward, 
+        # If there is hall call, then assign it to the closests elev
+        for i in range(FLOORS - highest_elv_flr, FLOORS, -1):
+            if self.state_hall_calls[i] == 1:
+                # Assign it
+                pass
+                # Pop it
+
         return self._get_highest_hall_call_flr()
 
 
@@ -262,7 +312,7 @@ class EGCS:
         '''
         Return the highest floor that has hall call.
         '''
-        self.reversed_hall_calls = list(reversed(self.info_hall_calls))
+        self.reversed_hall_calls = list(reversed(self.state_hall_calls))
         reversed_flr = 0
         highest_call_flr = 0
         while (reversed_flr != FLOORS):
@@ -278,7 +328,7 @@ class EGCS:
         '''
         Return the highest floor that agent locates.
         '''
-        return max(self.info_elevators)
+        return max(self.state_elevators)
 
 if __name__ == '__main__':
     
