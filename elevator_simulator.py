@@ -77,8 +77,12 @@ class EGCS:
         self.state_hall_calls = [] # List : Contains the flag of hall calls. Binary
         self.reversed_hall_calls = [] # List : Reverse of hall_calls
 
+        self.queue_syst = []
         self.queue_elv1 = []
         self.queue_elv2 = []
+
+        self.cnt_passengers_elv1 = 0
+        self.cnt_passengers_elv2 = 0
 
         self.score = 0
         self.passenger = None
@@ -123,19 +127,17 @@ class EGCS:
             #     elif event.key == pygame.K_DOWN:
             #         self.direction = Direction.DOWN
         
-        # 2. move
-        self._move() 
+        # 2. place new passenger
+        self._place_passenger()
         
         # 3. check if game over
         # game_over = False
         # if self._is_collision():
         #     game_over = True
         #     return game_over, self.score
-            
-        # 4. place new passenger
-        self._place_passenger()
         
-        # 5. update ui and clock
+        
+        # 4. update ui and clock
         self._update_ui()
         self.clock.tick(SPEED)
         # 6. return game over and score
@@ -152,11 +154,7 @@ class EGCS:
             self.state_hall_calls[rand_flr-1] += 1
             self.temp_ticks = curr_ticks
 
-        # y = rand_update_uiom.randint(0, 8)*ELEVATOR_HEIGHT
-        # self.passenger = Point(x, y)
-        # If passenger meets elevator, then 
-            # allocate new passenger next time
-        pass
+        self._assign()
     
     def _is_collision(self):
         # # hits boundary
@@ -168,7 +166,171 @@ class EGCS:
         
         # return False
         pass
+
+
+    def _assign_flr_to_any(self, elv, flr):
+        '''
+        Assign the input flr into the appropriate elv regarding the state of system.
+        '''  
+        if flr == 0 or elv ==0:
+            return
+            
+        # Assign
+        if elv == 1:
+            if flr not in self.queue_elv1:
+                self.queue_elv1.append(flr)
+        elif elv == 2:
+            if flr not in self.queue_elv2:
+                self.queue_elv2.append(flr)
+        else:
+            print("WATCH OUT")
+
+    
+    def _assign(self):
+        '''
+        If there exist request under elv1 or elv2, push it into the queue.
+        While it goes to request, if there comes new request which has high priority,
+        then push the original target into queue, and set the new target for next visit.
+        '''
+        # Where to visit next?
+        highest_elv_id = self._get_closest_elevator_with_flr(9)[0]
+        # Where both elevator are on the GF
+        if highest_elv_id == 1: 
+            next_visit_flr = self._get_highest_hall_call_flr()
+            next_visit_elv = 1 # self._get_closest_elevator_with_flr(next_visit_flr)
+            self._assign_flr_to_any(next_visit_elv, next_visit_flr)
         
+        # # While examining the hall calls lower than the highest elevator,
+        # # if there is hall call, then assign it to the closests elev
+        # for i in range(FLOORS - highest_elv_flr, FLOORS, -1):
+        #     if self.state_hall_calls[i] == 1:
+        #         # Assign it
+        #         pass
+        #         # Pop it
+        
+        print("===== information =====")
+        # print("get next visit flr : ", self._get_next_visit_flr())
+        print("get highest hall call flr: ", self._get_highest_hall_call_flr())
+        print("highest elevator flr: ", self._get_closest_elevator_with_flr(9))
+        print("get highest elvid, flr: ", self._get_highest_elevator_flr_info(9))
+        print("get highest agent flr: ", self._get_highest_agent_flr())
+        print("queue_elv1 : ", self.queue_elv1)
+        print("queue_elv2 : ", self.queue_elv2)
+
+
+    def _move(self):
+        '''
+        Get to the floor of queue.front.
+        '''
+        pass
+    
+    def _arrive(self):
+        '''
+        If there are passengers, and elev.state is 0 (stop) at the floor,
+        then take the passenger into the elevator.
+        '''
+        pass
+
+    def _deliever(self):
+        '''
+        If there are passengers inside the elevator, (it should be going down)
+        then deliever them into the first floor.
+        It means, push 1st floor into the queue,
+        in order to set the next visit floor as the GF.
+        '''
+        pass
+    
+    def _get_closest_elevator_with_flr(self, flr):
+        '''
+        Return the closest elevator with the input floor.
+        '''
+        residual_elv1 = abs(flr - self.state_elevators[0])
+        residual_elv2 = abs(flr - self.state_elevators[1])
+
+        # Elevator 1 is closer with the input flr
+        if residual_elv1 > residual_elv2:
+            return 1, self.state_elevators[0]
+
+        # Elevator 2 is closer with the input flr
+        elif residual_elv1 < residual_elv2:
+            return 2, self.state_elevators[1]
+
+        # Elevator 1 has priority
+        else: 
+            return 1, self.state_elevators[0]
+            
+    def _get_highest_elevator_flr_info(self, floor):
+        '''
+        Return the highest floor that elevator locates.
+        '''
+        max_flr = floor
+        max_elvid = -1
+
+        # Comapare all the located floor among elevators
+        for i in range(len(self.state_elevators)):
+            flr = self.state_elevators[i]
+            if max_flr < flr:
+                max_flr = flr
+                max_elvid = i
+        
+        if max_flr == 9 or max_elvid == -1:
+            return 0, 9
+
+        # Return the highest 
+        return max_elvid, max_flr
+
+
+
+    # def _get_next_visit_flr(self):
+    #     '''
+    #     Return the floor should be visit next. Update every ticks.
+    #     '''
+    #     # Should be designed in detail..!!
+
+    #     # Only consider the floors belgit ow both elevator.
+    #     highest_elv_flr = self._get_highest_elevator_flr_info(9)[1]
+
+    #     # Where both elevator are on the GF
+    #     if highest_elv_flr == 1: 
+    #         next_visit_flr = self._get_highest_hall_call_flr()
+        
+    #     # While examining the hall calls lower than the highest elevator,
+    #     # if there is hall call, then assign it to the closests elev
+    #     for i in range(FLOORS - highest_elv_flr, FLOORS, -1):
+    #         if self.state_hall_calls[i] == 1:
+    #             # Assign it
+    #             pass
+    #             # Pop it
+
+    #     return next_visit_flr
+
+
+    def _get_highest_hall_call_flr(self):
+        '''
+        Return the highest floor that has hall call.
+        '''
+        if 1 not in self.state_hall_calls:
+            return 0
+        
+        else:
+            self.reversed_hall_calls = list(reversed(self.state_hall_calls))
+            reversed_flr = 0
+            highest_call_flr = 0
+            while (reversed_flr != FLOORS):
+                highest_call_flr = reversed_flr
+                if (self.reversed_hall_calls[reversed_flr] != 0):
+                    break
+                reversed_flr += 1
+            highest = FLOORS - highest_call_flr
+            # print("highest: ", highest)
+            return highest
+
+    def _get_highest_agent_flr(self):
+        '''
+        Return the highest floor that agent locates.
+        '''
+        return max(self.state_elevators)
+    
     def _update_ui(self):
         # Clear the background
         self.display.fill(WHITE)
@@ -225,110 +387,6 @@ class EGCS:
         
         pygame.display.flip()
         pass
-
-        
-    def _move(self):
-        deliever = False
-        self.next_visit_flr = self._get_next_visit_flr()
-        # x = self.head.x
-        # y = self.head.y
-        # if direction == Direction.RIGHT:
-        #     x += BLOCK_SIZE
-        # elif direction == Direction.LEFT:
-        #     x -= BLOCK_SIZE
-        # elif direction == Direction.DOWN:
-        #     y += BLOCK_SIZE
-        # elif direction == Direction.UP: 
-        #     y -= BLOCK_SIZE
-            
-        # self.head = Point(x, y)
-
-        # Onboard passenger
-        self.state_elevators[0] = self.next_visit_flr
-        # for agt, flr in enumerate(self.state_elevators):
-        #     if deliever == False:
-        #         if self.state_elevators[agt] >= self.next_visit_flr:
-        #             self.state_elevators[agt] = self.next_visit_flr
-        #             deliever = True
-    
-    def _get_cloesest_elevator_with_flr(self, flr):
-        '''
-        Return the closest elevator with the input floor.
-        '''
-        residual_elv1 = abs(flr, self.state_elevators[0])
-        residual_elv2 = abs(flr, self.state_elevators[1])
-        
-        # Elevator 1 is closer with the input flr
-        if residual_elv1 > residual_elv2:
-            return 1, self.state_elevators[0]
-
-        # Elevator 2 is closer with the input flr
-        elif residual_elv1 < residual_elv2:
-            return 2, self.state_elevators[1]
-
-        # Elevator 1 has priority
-        else: 
-            return 1, self.state_elevators[0]
-            
-    def _get_highest_elevator_flr_info(self, floor):
-        '''
-        Return the highest floor that elevator locates.
-        '''
-        max_flr = floor
-        max_elvid = -1
-
-        # Comapare all the located floor among elevators
-        for enum, flr in self.state_elevators:
-            if max_flr < flr:
-                max_flr = flr
-                max_elvid = enum
-
-        # Return the highest 
-        return max_elvid, max_flr
-
-
-
-    def _get_next_visit_flr(self):
-        '''
-        Return the floor should be visit next. Update every ticks.
-        '''
-        # Should be designed in detail..!!
-
-        # Only consider the floors below both elevator.
-        highest_elv_flr = self._get_highest_elevator_flr_info()[1]
-        
-        # While examining the hall calls to downward, 
-        # If there is hall call, then assign it to the closests elev
-        for i in range(FLOORS - highest_elv_flr, FLOORS, -1):
-            if self.state_hall_calls[i] == 1:
-                # Assign it
-                pass
-                # Pop it
-
-        return self._get_highest_hall_call_flr()
-
-
-    def _get_highest_hall_call_flr(self):
-        '''
-        Return the highest floor that has hall call.
-        '''
-        self.reversed_hall_calls = list(reversed(self.state_hall_calls))
-        reversed_flr = 0
-        highest_call_flr = 0
-        while (reversed_flr != FLOORS):
-            highest_call_flr = reversed_flr
-            if (self.reversed_hall_calls[reversed_flr] != 0):
-                break
-            reversed_flr += 1
-        highest = FLOORS - highest_call_flr
-        print("highest: ", highest)
-        return highest
-
-    def _get_highest_agent_floor(self):
-        '''
-        Return the highest floor that agent locates.
-        '''
-        return max(self.state_elevators)
 
 if __name__ == '__main__':
     
