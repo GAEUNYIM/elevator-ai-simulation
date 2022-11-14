@@ -36,7 +36,7 @@ AGENTS = 2
 
 ELEVATOR_WIDTH = 100
 ELEVATOR_HEIGHT = UI_HEIGHT / FLOORS
-SPEED = 20
+SPEED = 5
 
 class Elevator:
     '''
@@ -75,6 +75,7 @@ class EGCS:
         self.state_elevators = [1, 1] # List : Contains the location of elevators. Double-deck Elevator.
         self.state_directions = [0, 0] # List : Contains the direction of elevators.
         self.state_hall_calls = [] # List : Contains the flag of hall calls. Binary
+        self.flag_hall_calls = []
         self.reversed_hall_calls = [] # List : Reverse of hall_calls
 
         self.queue_syst = []
@@ -85,13 +86,14 @@ class EGCS:
         self.cnt_passengers_elv2 = 0
 
         self.score = 0
-        self.passenger = None
+        self.arrived_passengers = 0
         self._init_hall_calls()
     
     
     def _init_hall_calls(self):
         for i in range(0, FLOORS):
             self.state_hall_calls.append(0)
+            self.flag_hall_calls.append(0)
             # if i==0:
             #     self.state_hall_calls.append(0)
             # self.state_hall_calls.append(random.randint(0,1))
@@ -129,6 +131,14 @@ class EGCS:
         
         # 2. place new passenger
         self._place_passenger()
+
+        self._move()
+
+        self._onboard()
+
+        self._deliever()
+
+        self._outboard()
         
         # 3. check if game over
         # game_over = False
@@ -136,10 +146,10 @@ class EGCS:
         #     game_over = True
         #     return game_over, self.score
         
-        
         # 4. update ui and clock
         self._update_ui()
         self.clock.tick(SPEED)
+
         # 6. return game over and score
         # return game_over, self.score
 
@@ -148,12 +158,12 @@ class EGCS:
     def _place_passenger(self):
         curr_ticks = pygame.time.get_ticks()
         print("ticks: ", curr_ticks)
-        if (self.temp_ticks + 3000 < curr_ticks): # TODO : Poisson distribution should be applied.
+        if (self.temp_ticks + 100 < curr_ticks): # TODO : Poisson distribution should be applied.
             print("place_passenger()")
             rand_flr = random.randint(2, FLOORS)
             self.state_hall_calls[rand_flr-1] += 1
+            self.flag_hall_calls[rand_flr-1] = 1
             self.temp_ticks = curr_ticks
-
         self._assign()
     
     def _is_collision(self):
@@ -168,20 +178,22 @@ class EGCS:
         pass
 
 
-    def _assign_flr_to_any(self, elv, flr):
+    def _assign_flr_to_sys(self, elv, flr):
         '''
         Assign the input flr into the appropriate elv regarding the state of system.
         '''  
         if flr == 0 or elv ==0:
             return
-            
+
         # Assign
         if elv == 1:
             if flr not in self.queue_elv1:
                 self.queue_elv1.append(flr)
+                # self.flag_hall_calls[flr-1] = 0
         elif elv == 2:
             if flr not in self.queue_elv2:
                 self.queue_elv2.append(flr)
+                # self.flag_hall_calls[flr-1] = 0
         else:
             print("WATCH OUT")
 
@@ -194,19 +206,37 @@ class EGCS:
         '''
         # Where to visit next?
         highest_elv_id = self._get_closest_elevator_with_flr(9)[0]
+        highest_elv_flr = self._get_closest_elevator_with_flr(9)[1]
+        state_elv1 = self.state_elevators[0]
+        state_elv2 = self.state_elevators[1]
+
         # Where both elevator are on the GF
         if highest_elv_id == 1: 
             next_visit_flr = self._get_highest_hall_call_flr()
             next_visit_elv = 1 # self._get_closest_elevator_with_flr(next_visit_flr)
-            self._assign_flr_to_any(next_visit_elv, next_visit_flr)
+            self._assign_flr_to_sys(next_visit_elv, next_visit_flr)
         
-        # # While examining the hall calls lower than the highest elevator,
-        # # if there is hall call, then assign it to the closests elev
-        # for i in range(FLOORS - highest_elv_flr, FLOORS, -1):
-        #     if self.state_hall_calls[i] == 1:
-        #         # Assign it
-        #         pass
-        #         # Pop it
+        # One of the elevator is on the GF
+        elif highest_elv_id != 1 and state_elv1 == 1:
+            next_visit_flr = self._get_highest_hall_call_flr()
+            next_visit_elv = 1
+            self._assign_flr_to_sys(next_visit_elv, next_visit_flr)
+        
+        # One of the elevator is on the GF
+        elif highest_elv_id != 1 and state_elv2 == 1:
+            next_visit_flr = self._get_highest_hall_call_flr()
+            next_visit_elv = 2
+            self._assign_flr_to_sys(next_visit_elv, next_visit_flr)
+
+        # Both elevators are not on the GF
+        else:    
+            # While examining the hall calls lower than the highest elevator,
+            # if there is hall call, then assign it to the closests elev
+            for i in range(FLOORS - highest_elv_flr, FLOORS, -1):
+                if self.flag_hall_calls[i] == 1:
+                    # Assign it
+                    pass
+                    # Pop it
         
         print("===== information =====")
         # print("get next visit flr : ", self._get_next_visit_flr())
@@ -216,29 +246,109 @@ class EGCS:
         print("get highest agent flr: ", self._get_highest_agent_flr())
         print("queue_elv1 : ", self.queue_elv1)
         print("queue_elv2 : ", self.queue_elv2)
-
+        print("state_elevators : ", self.state_elevators)
+        print("Total arrived passengers : ", self.arrived_passengers)
+        print("self.state_hall_calls : ", self.state_hall_calls)
+        print("self.flag_hall_calls : ", self.flag_hall_calls)
+        print("self.state_directions : ", self.state_directions)
 
     def _move(self):
         '''
         Get to the floor of queue.front.
         '''
-        pass
+        # If there is a request in elv1, 
+        if len(self.queue_elv1) != 0:
+            next_visit_flr = self.queue_elv1[0]
+            self.queue_elv1.remove(next_visit_flr)
+        
+            # Check whether the candidate flr is on direction of elv1
+            if self._check_flr_on_direction(1, next_visit_flr) == 1:
+                self.state_elevators[0] = next_visit_flr # Go for it
+            # If not, postpone it
+            else:
+                self.queue_elv1.append(next_visit_flr)
+
+        # If there is a request in elv12
+        if len(self.queue_elv2) != 0:
+            next_visit_flr = self.queue_elv2[0]
+            self.queue_elv2.remove(next_visit_flr)
+        
+            # Check whether the candidate flr is on direction of elv1
+            if self._check_flr_on_direction(2, next_visit_flr) == 1:
+                self.state_elevators[1] = next_visit_flr # Go for it
+            # If not, postpone it
+            else:
+                self.queue_elv2.append(next_visit_flr)
+
+    def _check_flr_on_direction(self, elvid, flr):
+        '''
+        Check whether the input flr is on direction of given elevator.
+        '''
+        elvindex = elvid-1
+        direction = self.state_directions[elvindex]
+        
+        # Going down
+        if direction == -1:
+            if self.state_elevators[elvindex] >= flr:
+                return 1
+            else:
+                return 0
+
+        # Staying on a floor
+        else: 
+            return 1
+
     
-    def _arrive(self):
+    def _onboard(self):
         '''
         If there are passengers, and elev.state is 0 (stop) at the floor,
         then take the passenger into the elevator.
         '''
-        pass
+        # If there are passangers on the floor, take them
+        elv1_flr = self.state_elevators[0]
+
+        if self.state_hall_calls[elv1_flr-1] != 0:
+            self.cnt_passengers_elv1 += self.state_hall_calls[elv1_flr-1]
+            self.state_hall_calls[elv1_flr-1] = 0
+            self.flag_hall_calls[elv1_flr-1] = 0
+
+        elv2_flr = self.state_elevators[1]
+        if self.state_hall_calls[elv2_flr-1] != 0:
+            self.cnt_passengers_elv2 += self.state_hall_calls[elv2_flr-1]
+            self.state_hall_calls[elv2_flr-1] = 0
+            self.flag_hall_calls[elv2_flr-1] = 0
 
     def _deliever(self):
         '''
         If there are passengers inside the elevator, (it should be going down)
-        then deliever them into the first floor.
+        then deliever them to the first floor.
         It means, push 1st floor into the queue,
         in order to set the next visit floor as the GF.
         '''
-        pass
+        # If there are passengers inside the elevator, deliever them to GF.
+        if self.cnt_passengers_elv1 != 0:
+            self.state_directions[0] = -1
+            self._assign_flr_to_sys(1, 1)
+        
+        if self.cnt_passengers_elv2 != 0:
+            self.state_directions[1] = -1
+            self._assign_flr_to_sys(2, 1)
+    
+    def _outboard(self):
+        '''
+        Take passengers off onto the GF.
+        '''
+        if self.cnt_passengers_elv1 != 0 and self.state_elevators[0] == 1:
+            self.arrived_passengers += self.cnt_passengers_elv1
+            self.cnt_passengers_elv1 = 0
+            self.state_elevators[0] = 1
+            self.state_directions[0] = 0
+        
+        if self.cnt_passengers_elv2 != 0 and self.state_elevators[1] == 1:
+            self.arrived_passengers += self.cnt_passengers_elv2
+            self.cnt_passengers_elv2 = 0
+            self.state_elevators[1] = 1
+            self.state_directions[1] = 0
     
     def _get_closest_elevator_with_flr(self, flr):
         '''
@@ -309,7 +419,7 @@ class EGCS:
         '''
         Return the highest floor that has hall call.
         '''
-        if 1 not in self.state_hall_calls:
+        if 1 not in self.flag_hall_calls:
             return 0
         
         else:
