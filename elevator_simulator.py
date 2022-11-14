@@ -189,10 +189,20 @@ class EGCS:
         if elv == 1:
             if flr not in self.queue_elv1:
                 self.queue_elv1.append(flr)
+                self.queue_elv1.sort()
+                for flr in self.queue_elv1:
+                    if flr > self.state_elevators[0]:
+                        self.queue_elv1.remove(flr)
+                        self.queue_elv1.append(flr)
                 # self.flag_hall_calls[flr-1] = 0
         elif elv == 2:
             if flr not in self.queue_elv2:
                 self.queue_elv2.append(flr)
+                self.queue_elv2.sort()
+                for flr in self.queue_elv2:
+                    if flr > self.state_elevators[0]:
+                        self.queue_elv2.remove(flr)
+                        self.queue_elv2.append(flr)
                 # self.flag_hall_calls[flr-1] = 0
         else:
             print("WATCH OUT")
