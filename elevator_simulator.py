@@ -627,8 +627,8 @@ class EGCS:
         # pygame.draw.rect(self.display, RED, pygame.Rect(self.food.x, self.food.y, BLOCK_SIZE, BLOCK_SIZE))
         
         # text = font.render("Score: " + str(self.score), True, BLACK)
-        # time = font.render("TIME: " + str(self.clock), True, BLACK )
-        # self.display.blit(time, [0, 40])
+        time = font.render("TIME: " + str(round(pygame.time.get_ticks() / 1000, 2)) + "s", True, BLACK )
+        self.display.blit(time, [180, 760])
 
         text_wz = font.render("# of passengers waiting", True, BLACK )
         self.display.blit(text_wz, [160, 10])
