@@ -36,7 +36,7 @@ AGENTS = 2
 
 ELEVATOR_WIDTH = 100
 ELEVATOR_HEIGHT = UI_HEIGHT / FLOORS
-SPEED = 5
+SPEED = 10
 
 class Elevator:
     '''
@@ -386,12 +386,19 @@ class EGCS:
         
             # Check whether the candidate flr is on direction of elv1
             if self._check_flr_on_direction(1, next_visit_flr) == 1:
+                # current_flr = self.state_elevators[0]
+                # if current_flr > next_visit_flr:
+                #     for i in range(current_flr, next_visit_flr, -1):
+                #         self.state_elevators[0] = i-1 # Go for it
+                # elif current_flr < next_visit_flr:
+                #     for i in range(current_flr, next_visit_flr):
+                #         self.state_elevators[0] = i-1 # Go for it
                 self.state_elevators[0] = next_visit_flr # Go for it
             # If not, postpone it
             else:
                 self.queue_elv1.append(next_visit_flr)
 
-        # If there is a request in elv12
+        # If there is a request in elv2,
         if len(self.queue_elv2) != 0:
             next_visit_flr = self.queue_elv2[0]
             self.queue_elv2.remove(next_visit_flr)
@@ -399,6 +406,13 @@ class EGCS:
         
             # Check whether the candidate flr is on direction of elv1
             if self._check_flr_on_direction(2, next_visit_flr) == 1:
+                # current_flr = self.state_elevators[1]
+                # if current_flr > next_visit_flr:
+                #     for i in range(current_flr, next_visit_flr, -1):
+                #         self.state_elevators[1] = i-1 # Go for it
+                # elif current_flr < next_visit_flr:
+                #     for i in range(current_flr, next_visit_flr):
+                #         self.state_elevators[1] = i-1 # Go for it
                 self.state_elevators[1] = next_visit_flr # Go for it
             # If not, postpone it
             else:
@@ -594,6 +608,9 @@ class EGCS:
 
             # GF
             if flr == 0: 
+                text = font.render(str(self.arrived_passengers) + " arrived", True, BLACK)
+                self.display.blit(text, [pt.x+10, pt.y+10])
+
                 text_flrg = font.render("GF", True, BLACK)
                 self.display.blit(text_flrg,[pt.x-80, pt.y+10] )
 
@@ -613,8 +630,8 @@ class EGCS:
         # time = font.render("TIME: " + str(self.clock), True, BLACK )
         # self.display.blit(time, [0, 40])
 
-        text_wz = font.render("# of passengers", True, BLACK )
-        self.display.blit(text_wz, [180, 10])
+        text_wz = font.render("# of passengers waiting", True, BLACK )
+        self.display.blit(text_wz, [160, 10])
         
         pygame.display.flip()
         pass
